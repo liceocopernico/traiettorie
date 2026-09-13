@@ -1,0 +1,11 @@
+[project]
+name = "traiettorie"
+version = "0.1.0"
+description = "GUI per l'analisi della traiettoria di un oggetto in movimento a partire da un video"
+requires-python = ">=3.9"
+dependencies = [
+    "pyside6>=6.7",
+]
+
+[tool.uv]
+package = false
