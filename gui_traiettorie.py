@@ -233,6 +233,65 @@ def extract_thumbnail(video_path, time_seconds, out_path, max_size=320):
         )
 
 
+def build_metadata_text(video_path, video_info, step, background, compose,
+                         start_seconds=None, end_seconds=None,
+                         frames_totali=None, frames_sovrapposti=None):
+    """Costruisce il testo del file .txt salvato accanto all'immagine di
+    traiettoria: metadati del video sorgente e intervallo temporale tra due
+    fotogrammi consecutivi nella foto stroboscopica (step di sovrapposizione
+    diviso i fps del video)."""
+    video_info = video_info or {}
+    fps = video_info.get("fps")
+
+    lines = [
+        "Metadati traiettoria stroboscopica",
+        "=" * 34,
+        "",
+        f"Video sorgente: {video_path}",
+    ]
+    if video_info.get("width") and video_info.get("height"):
+        lines.append(f"Risoluzione: {video_info['width']}x{video_info['height']}")
+    if fps:
+        lines.append(f"Fps: {fps:.3f}")
+    if video_info.get("duration"):
+        d = video_info["duration"]
+        lines.append(f"Durata video: {format_time(d)} ({d:.2f} s)")
+    if video_info.get("nb_frames"):
+        lines.append(f"Fotogrammi totali nel video: {video_info['nb_frames']}")
+
+    lines.append("")
+    if start_seconds is not None and end_seconds is not None:
+        lines.append(
+            f"Intervallo suddiviso: {format_time(start_seconds)} - "
+            f"{format_time(end_seconds)} ({end_seconds - start_seconds:.2f} s)"
+        )
+    else:
+        lines.append("Intervallo suddiviso: video intero")
+    if frames_totali is not None:
+        lines.append(f"Fotogrammi estratti nell'intervallo: {frames_totali}")
+
+    lines.append("")
+    lines.append(f"Step di sovrapposizione: 1 fotogramma ogni {step}")
+    if frames_sovrapposti is not None:
+        lines.append(f"Fotogrammi sovrapposti nell'immagine: {frames_sovrapposti}")
+    if fps:
+        delta_t = step / fps
+        lines.append(
+            "Intervallo temporale tra due immagini consecutive "
+            f"della foto stroboscopica: {delta_t:.4f} s"
+        )
+    else:
+        lines.append(
+            "Intervallo temporale tra due immagini consecutive: "
+            "non calcolabile (fps del video sconosciuti)"
+        )
+
+    lines.append("")
+    lines.append(f"Sfondo scelto: {background} (composizione ImageMagick: {compose})")
+    lines.append("")
+    return "\n".join(lines)
+
+
 def frame_size_from_png(path):
     """Legge la risoluzione reale di un fotogramma gia' estratto,
     tramite 'identify' di ImageMagick (usato anche per il ricampionamento)."""
@@ -431,6 +490,9 @@ class TraiettorieWindow(QMainWindow):
         self.out_image_path = None
         self.cancel_event = threading.Event()
         self._expected_split_frames = None
+        self.range_start_seconds = None   # intervallo scelto nell'ultima suddivisione
+        self.range_end_seconds = None
+        self._last_combine_meta = {}      # step/sfondo/conteggi dell'ultima sovrapposizione
 
         # anteprime dell'intervallo di suddivisione (grafiche, vedi
         # _build_range_box): cartella temporanea per i fotogrammi estratti
@@ -797,6 +859,8 @@ class TraiettorieWindow(QMainWindow):
             end_seconds = self.end_slider.value() / 10.0
             self._log(f"Intervallo scelto: da {format_time(start_seconds)} "
                       f"a {format_time(end_seconds)}.")
+        self.range_start_seconds = start_seconds
+        self.range_end_seconds = end_seconds
 
         # stima dei fotogrammi attesi nell'intervallo scelto, per la barra
         # di avanzamento (altrimenti si ripiega sulla stima sull'intero video)
@@ -846,6 +910,16 @@ class TraiettorieWindow(QMainWindow):
         out_path = os.path.join(self.frames_dir, "out.png")
         self.out_image_path = out_path
 
+        # parametri di questa sovrapposizione, riusati da salva_immagine per
+        # scrivere il file .txt con i metadati accanto all'immagine salvata
+        self._last_combine_meta = {
+            "step": step,
+            "background": background,
+            "compose": "Darken" if background == "bianco" else "Lighten",
+            "frames_totali": len(frames),
+            "frames_sovrapposti": len(range(0, len(frames), step)),
+        }
+
         self.combine_progress.setValue(0)
         self.cancel_event.clear()
         self._set_busy(True)
@@ -881,6 +955,28 @@ class TraiettorieWindow(QMainWindow):
             dest = dialog.selectedFiles()[0]
             shutil.copyfile(self.out_image_path, dest)
             self._log(f"Immagine copiata in '{dest}'.")
+
+            meta = self._last_combine_meta
+            testo = build_metadata_text(
+                self.video_path, self.video_info,
+                step=meta.get("step"),
+                background=meta.get("background"),
+                compose=meta.get("compose"),
+                start_seconds=self.range_start_seconds,
+                end_seconds=self.range_end_seconds,
+                frames_totali=meta.get("frames_totali"),
+                frames_sovrapposti=meta.get("frames_sovrapposti"),
+            )
+            txt_dest = os.path.splitext(dest)[0] + ".txt"
+            try:
+                with open(txt_dest, "w", encoding="utf-8") as f:
+                    f.write(testo)
+                self._log(f"Metadati salvati in '{txt_dest}'.")
+            except OSError as exc:
+                self._log(f"Impossibile salvare i metadati: {exc}")
+                QMessageBox.warning(self, "Attenzione",
+                                     f"Immagine salvata, ma non e' stato possibile "
+                                     f"scrivere il file dei metadati:\n{exc}")
 
     def _apply_quick_access(self, dialog):
         """Forza l'uso della finestra di selezione file non nativa di Qt e

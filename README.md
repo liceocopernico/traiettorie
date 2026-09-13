@@ -78,3 +78,10 @@ uv run gui_traiettorie.py
    Il risultato e' un'unica immagine con le posizioni successive
    dell'oggetto sovrapposte, pronta per la misura della traiettoria, con
    anteprima a schermo e possibilita' di salvarla con un nome a scelta.
+
+   Al salvataggio, accanto all'immagine (es. `traiettoria.png`) viene
+   scritto anche un file di testo omonimo (`traiettoria.txt`) con i
+   metadati del video (risoluzione, fps, durata), l'intervallo suddiviso,
+   lo step di sovrapposizione usato e l'intervallo temporale tra due
+   immagini consecutive della foto stroboscopica (step diviso i fps del
+   video) &mdash; utile per la successiva analisi cinematica.
