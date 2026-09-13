@@ -9,13 +9,10 @@ immagine "stroboscopica", utile per misurare la traiettoria dell'oggetto.
 
 | File | Ruolo |
 |---|---|
-| [gui_traiettorie.py](gui_traiettorie.py) | Interfaccia grafica (PySide6/Qt) che guida l'intero flusso di lavoro |
-| [split.sh](split.sh) | Script originale: suddivide un video in fotogrammi con ffmpeg |
-| [combine.pl](combine.pl) | Script originale: sovrappone i fotogrammi con ImageMagick |
 | `video/` | Cartella con i video sorgente |
 | `fotogrammi/` | Cartella con i fotogrammi estratti (una sottocartella per ogni video analizzato) |
 
-La GUI riusa esattamente gli stessi comandi esterni degli script originali:
+La GUI rende più semplice l'analisi dei video rispetto ai vecchi script i cui comandi fondamentali sono riportati qui:
 
 - `split.sh` &rarr; `ffmpeg -i VIDEO fotogrammi/fotogramma%03d.png`
 - `combine.pl` &rarr; `convert out.png FRAME -compose Darken -composite out.png`
