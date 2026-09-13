@@ -1,4 +1,4 @@
-# traiettorie
+# Traiettorie
 
 Codice per l'analisi di traiettorie da video: a partire da un filmato di un
 oggetto in movimento (es. un esperimento di cinematica), il video viene
