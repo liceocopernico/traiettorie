@@ -3,7 +3,7 @@
 Codice per l'analisi di traiettorie da video: a partire da un filmato di un
 oggetto in movimento (es. un esperimento di cinematica), il video viene
 scomposto in fotogrammi e i fotogrammi vengono poi sovrapposti in un'unica
-immagine "stroboscopica", utile per misurare la traiettoria dell'oggetto.
+immagine "stroboscopica", utile per visualizzare la traiettoria dell'oggetto.
 
 ## File del progetto
 
