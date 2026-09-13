@@ -4,41 +4,10 @@ gui_traiettorie.py
 ===================
 
 Interfaccia grafica (PySide6 / Qt) per l'analisi della traiettoria di un
-oggetto in movimento a partire da un video, riusando esattamente gli
-stessi comandi esterni di split.sh e combine.pl:
+oggetto in movimento a partire da un video.
 
-    - split.sh   ->  ffmpeg -i VIDEO fotogrammi/fotogramma%03d.png
-    - combine.pl ->  convert out.png FRAME -compose Darken -composite out.png
-
-Dipendenze Python: solo PySide6, dichiarata in pyproject.toml e installata
-da uv nel virtualenv del progetto (.venv). Per preparare/aggiornare
-l'ambiente:
-
-    uv sync
-
-Per avviare la GUI (usa automaticamente il .venv del progetto):
-
-    uv run gui_traiettorie.py
-
-Flusso di lavoro proposto dalla GUI:
-
-    1) Scelta del file video e rilevamento automatico della risoluzione
-       (tramite ffprobe, parte della suite ffmpeg).
-    2) Suddivisione del video in fotogrammi (ffmpeg, come in split.sh),
-       salvati in "fotogrammi/<nome-video>_<hash>/" cioe' in una
-       sottocartella diversa per ogni file video analizzato, cosi' da non
-       mescolare mai i fotogrammi di video differenti.
-    3) Scelta dello step di sovrapposizione dei fotogrammi (come la
-       variabile $step di combine.pl).
-    4) Sovrapposizione di tutti i fotogrammi selezionati su uno sfondo
-       bianco o nero, a scelta dell'utente:
-         - sfondo BIANCO -> -compose Darken   (tiene il pixel piu' scuro,
-           adatto a un oggetto scuro su sfondo chiaro)
-         - sfondo NERO   -> -compose Lighten  (tiene il pixel piu' chiaro,
-           adatto a un oggetto chiaro su sfondo scuro)
-
-Dipendenze esterne (riga di comando, non Python): ffmpeg/ffprobe e
-ImageMagick (convert/identify), gia' richieste dagli script originali.
+Per il flusso di lavoro, le dipendenze (Python ed esterne) e le istruzioni
+di avvio, vedi README.md nella stessa cartella.
 """
 
 import glob
