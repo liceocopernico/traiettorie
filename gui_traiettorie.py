@@ -362,12 +362,12 @@ def combine_frames(frames_dir, step, background, out_path, width, height,
     """Equivalente di combine.pl, generalizzato con step/sfondo scelti
     dall'utente e con inizializzazione esplicita dell'immagine di base
     (in combine.pl 'out.png' doveva gia' esistere: qui viene creata)."""
-    which_or_raise("convert")
+    which_or_raise("magick")
 
     bg_color = "white" if background == "bianco" else "black"
     compose = "Darken" if background == "bianco" else "Lighten"
 
-    init_cmd = ["convert", "-size", f"{width}x{height}", f"xc:{bg_color}", out_path]
+    init_cmd = ["magick", "-size", f"{width}x{height}", f"xc:{bg_color}", out_path]
     sink.put(("log", "Comando: " + " ".join(init_cmd)))
     result = subprocess.run(init_cmd, capture_output=True, text=True)
     if result.returncode != 0:
@@ -394,7 +394,7 @@ def combine_frames(frames_dir, step, background, out_path, width, height,
             sink.put(("combine_done", False))
             return
         fpath = os.path.join(frames_dir, fname)
-        cmd = ["convert", out_path, fpath, "-compose", compose, "-composite", out_path]
+        cmd = ["magick", out_path, fpath, "-compose", compose, "-composite", out_path]
         result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode != 0:
             sink.put(("error", f"Errore su '{fname}':\n{result.stderr}"))
