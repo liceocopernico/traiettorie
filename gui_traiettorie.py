@@ -513,19 +513,80 @@ class TraiettorieWindow(QMainWindow):
         self.setCentralWidget(central)
         root = QVBoxLayout(central)
 
-        root.addWidget(self._build_video_box())
+        # due colonne affiancate invece di un'unica pila verticale: sugli
+        # schermi a bassa risoluzione (poca altezza disponibile) l'altezza
+        # complessiva della finestra resta cosi' molto piu' contenuta.
+        # Colonna sinistra: passi 1-3 (video, intervallo, suddivisione).
+        # Colonna destra: passo 4 (step/sfondo) e l'anteprima del risultato.
+        columns = QHBoxLayout()
+
+        left_col = QVBoxLayout()
+        left_col.addWidget(self._build_video_box())
         # l'intervallo di suddivisione riceve tutto lo spazio verticale in
         # eccesso quando la finestra viene ingrandita, cosi' i riquadri di
         # anteprima possono crescere invece delle altre sezioni
-        root.addWidget(self._build_range_box(), stretch=1)
-        root.addWidget(self._build_split_box())
-        root.addWidget(self._build_combine_box())
-        root.addWidget(self._build_preview_box())
+        left_col.addWidget(self._build_range_box(), stretch=1)
+        left_col.addWidget(self._build_split_box())
+
+        right_col = QVBoxLayout()
+        right_col.addWidget(self._build_combine_box())
+        right_col.addWidget(self._build_preview_box())
+
+        columns.addLayout(left_col, 1)
+        columns.addLayout(right_col, 1)
+
+        root.addLayout(columns, 1)
         root.addWidget(self._build_log_box())
+
+        # allinea le due anteprime anche alla primissima apertura, prima
+        # che sia mai avvenuto un ridimensionamento della finestra
+        QTimer.singleShot(0, self._sync_thumbnail_widths)
 
     def closeEvent(self, event):
         shutil.rmtree(self._thumb_dir, ignore_errors=True)
         super().closeEvent(event)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        # rimandato al giro successivo dell'event loop: al momento in cui
+        # questo gestore viene chiamato il QGridLayout potrebbe non aver
+        # ancora applicato le nuove dimensioni ai due riquadri di anteprima
+        QTimer.singleShot(0, self._sync_thumbnail_widths)
+
+    def _sync_thumbnail_widths(self):
+        """Il QGridLayout puo' assegnare alle due colonne dell'intervallo
+        (inizio/fine) una larghezza che differisce di un pixel per
+        arrotondamento, quando lo spazio disponibile non e' divisibile
+        esattamente per due. Qui si calcola la meta' esatta della
+        larghezza effettivamente disponibile per la griglia e la si forza
+        -- identica -- su entrambe le anteprime, cosi' inizio e fine hanno
+        sempre dimensioni identiche (l'altezza e' gia' garantita uguale
+        perche' condividono la stessa riga della griglia).
+
+        Si riparte ogni volta dalla larghezza della griglia (non da quella
+        gia' vincolata dei riquadri, che al giro precedente e' stata
+        limitata da questa stessa funzione): altrimenti, ad ogni chiamata
+        successiva, si rileggerebbe il valore gia' limitato invece di
+        quello effettivamente disponibile, e le anteprime non potrebbero
+        piu' crescere quando la finestra viene ingrandita.
+
+        Si agisce solo sulla larghezza MASSIMA (mai sul minimo, che resta
+        quello originale di ThumbnailLabel): imporre anche un minimo
+        renderebbe irreversibile ogni crescita, impedendo alla finestra di
+        tornare piu' piccola in seguito (il vincolo minimo si sommerebbe
+        di volta in volta, facendo solo salire la dimensione minima della
+        finestra)."""
+        total = self._range_grid.geometry().width()
+        spacing = self._range_grid.horizontalSpacing()
+        if spacing < 0:
+            spacing = self._range_grid.spacing()
+        if spacing < 0:
+            spacing = 6
+        w = (total - spacing) // 2
+        if w <= 0:
+            return
+        self.start_thumb.setMaximumWidth(w)
+        self.end_thumb.setMaximumWidth(w)
 
     # -- costruzione interfaccia -----------------------------------------
 
@@ -561,33 +622,41 @@ class TraiettorieWindow(QMainWindow):
         hint.setStyleSheet("color: gray;")
         outer.addWidget(hint)
 
-        cols = QHBoxLayout()
+        # una griglia (non due colonne indipendenti) cosi' i due riquadri di
+        # anteprima occupano sempre la stessa riga: la larghezza delle due
+        # colonne e' vincolata a restare uguale (stretch identico) e
+        # l'altezza dei due riquadri e' quella di un'unica riga condivisa,
+        # quindi hanno sempre esattamente le stesse dimensioni
+        grid = QGridLayout()
+        grid.setColumnStretch(0, 1)
+        grid.setColumnStretch(1, 1)
+        grid.setRowStretch(1, 1)
+        self._range_grid = grid  # riletto da _sync_thumbnail_widths
+
         self.start_thumb, self.start_slider, self.start_time_label = \
-            self._build_range_column(cols, "Inizio")
+            self._build_range_column(grid, 0, "Inizio")
         self.end_thumb, self.end_slider, self.end_time_label = \
-            self._build_range_column(cols, "Fine")
-        outer.addLayout(cols, stretch=1)
+            self._build_range_column(grid, 1, "Fine")
+        outer.addLayout(grid, 1)
 
         self.start_slider.valueChanged.connect(self._on_start_slider_changed)
         self.end_slider.valueChanged.connect(self._on_end_slider_changed)
         return box
 
-    def _build_range_column(self, parent_layout, title):
-        col = QVBoxLayout()
-        col.addWidget(QLabel(f"<b>{title}</b>"), alignment=Qt.AlignHCenter)
+    def _build_range_column(self, grid, col, title):
+        grid.addWidget(QLabel(f"<b>{title}</b>"), 0, col, alignment=Qt.AlignHCenter)
 
         thumb = ThumbnailLabel("(seleziona un video)")
         thumb.setStyleSheet("background: #202020; color: gray; border: 1px solid gray;")
-        col.addWidget(thumb, stretch=1)
+        grid.addWidget(thumb, 1, col)
 
         slider = QSlider(Qt.Horizontal)
         slider.setEnabled(False)
-        col.addWidget(slider)
+        grid.addWidget(slider, 2, col)
 
         time_label = QLabel(f"{title}: --:--.-")
-        col.addWidget(time_label, alignment=Qt.AlignHCenter)
+        grid.addWidget(time_label, 3, col, alignment=Qt.AlignHCenter)
 
-        parent_layout.addLayout(col)
         return thumb, slider, time_label
 
     def _build_split_box(self):
