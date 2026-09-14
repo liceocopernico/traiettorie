@@ -1,9 +1,9 @@
-# traiettorie
+# Traiettorie
 
 Codice per l'analisi di traiettorie da video: a partire da un filmato di un
 oggetto in movimento (es. un esperimento di cinematica), il video viene
 scomposto in fotogrammi e i fotogrammi vengono poi sovrapposti in un'unica
-immagine "stroboscopica", utile per misurare la traiettoria dell'oggetto.
+immagine "stroboscopica", utile per visualizzare la traiettoria dell'oggetto.
 
 ## File del progetto
 
@@ -72,9 +72,9 @@ uv run gui_traiettorie.py
    - sfondo **nero** (oggetto chiaro) &rarr; composizione `Lighten` (tiene il
      pixel piu' chiaro tra i fotogrammi)
 
-   Il risultato e' un'unica immagine con le posizioni successive
+   Il risultato è un'unica immagine con le posizioni successive
    dell'oggetto sovrapposte, pronta per la misura della traiettoria, con
-   anteprima a schermo e possibilita' di salvarla con un nome a scelta.
+   anteprima a schermo e possibilità di salvarla con un nome a scelta.
 
    Al salvataggio, accanto all'immagine (es. `traiettoria.png`) viene
    scritto anche un file di testo omonimo (`traiettoria.txt`) con i
